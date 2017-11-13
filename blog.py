@@ -1,10 +1,12 @@
 #coding:utf-8
-from sqlalchemy import create_engine
+import random
+from faker import Factory
+
+from sqlalchemy import create_engine,Table
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import sessionmaker,relationship
 from sqlalchemy import ForeignKey
 from sqlalchemy import Column,String,Integer,Text
-from sqlalchemy import Table
 
 engine = create_engine('mysql+mysqldb://root@localhost:3306/blog?charset=utf8')
 
@@ -27,6 +29,8 @@ class Article(Base):
 	title = Column(String(255),nullable=False,index=True)
 	content= Column(Text)
 	user_id=Column(Integer,ForeignKey('users.id'))
+	cate_id= Column(Integer,ForeignKey('categories.id'))
+	tags= relationship('Tag',secondary='article_tag',backref='articles')
 	
 class UserInfo(Base):
 	__tablename__ = 'userinfos'
@@ -37,6 +41,14 @@ class UserInfo(Base):
 	phone = Column(String(11))
 	link = Column(String(64))
 	user_id = Column(Integer,ForeignKey('users.id'))
+
+class Category(Base):
+	__tablename__ = 'categories'
+	
+	id = Column (Integer,primary_key = True)
+	name = Column(String(64),nullable=False,index=True)
+	articles=relationship('Article',backref='category')
+
 
 article_tag = Table(
 	'article_tag',Base.metadata,
@@ -51,37 +63,6 @@ class Tag(Base):
 	name = Column(String(64),nullable=False,index=True)
 
 	
+if __name__ == '__main__':
+	Base.metadata.create_all(engine)
 
-Base.metadata.create_all(engine)
-
-from faker import Factory
-
-faker = Factory.create()
-Session = sessionmaker(bind=engine)
-session = Session()
-
-faker_users = [User(
-	username = faker.name(),
-	password = faker.word(),
-	email = faker.email(),
-)for i in range(10)]
-
-session.add_all (faker_users)
-
-faker_categories = [Category(name=faker.word()) for i in range(5)]
-session.add_all(faker_categories)
-
-faker_tags = [Tag(name=faker.word()) for i in range(20)]
-session.add_all(faker_tags)
-
-for i in range(100):
-	article = Article(
-		title = faker.sentence(),
-		content =' '.join(faker.sentences(nb=random.randint(10,20))),
-		author = random.choice(faker_users),
-		category = random.choice(faker_categories)
-	)
-	for tag in random.sample(faker_tags,random.randint(2,5)):
-		article.tags.append(tag)
-	session.add(article)
-session.commit()
