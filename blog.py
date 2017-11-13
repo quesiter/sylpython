@@ -62,7 +62,6 @@ class Tag(Base):
 	id = Column(Integer,primary_key = True)
 	name = Column(String(64),nullable=False,index=True)
 
-	
 if __name__ == '__main__':
 	Base.metadata.create_all(engine)
 
